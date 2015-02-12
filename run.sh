@@ -1,4 +1,6 @@
 #!/bin/bash	
+INIT_DB_SCRIPT=/var/www/felinpossible/install/sql/light_dump.sql
+
 chown -R mysql:mysql /var/lib/mysql 
 
 if [[ ! -d /var/lib/mysql/mysql ]]
@@ -11,21 +13,20 @@ if [[ ! -d /var/lib/mysql/felinpossible ]]
 then
     set -e
 
-    mysqld_safe &
-    sleep 10s
+    if [ -f ${INIT_DB_SCRIPT} ]
+    then
+      mysqld_safe &
+      sleep 10s
 
-	echo "Create felinpossible database..."
+      echo "Create felinpossible database..."
+	  mysql --user=root < ${INIT_DB_SCRIPT}
+	  echo "DB felinpossible created"
 
-	mysql --user=root <<EOF
-CREATE DATABASE felinpossible;
-USE felinpossible;
-GRANT ALL PRIVILEGES ON *.* TO 'felinpossible'@'localhost' identified by 'felinpossible' with grant option;
-exit
-EOF
-  
-    echo "DB felinpossible created"
-
-    killall mysqld
+	  killall mysqld	  
+	else
+	  echo "Init dump file ${INIT_DB_SCRIPT} not found"
+	  exit 1
+	fi
 fi
 
-supervisord
+supervisord -c /etc/supervisor/conf.d/supervisord.conf
